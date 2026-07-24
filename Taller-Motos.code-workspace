@@ -1,0 +1,38 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../Taller de motos/js"
+		},
+		{
+			"path": "../../Taller de motos/node_modules"
+		},
+		{
+			"path": "../../Taller de motos/python"
+		},
+		{
+			"path": "../../Taller de motos/Taller-de-motos"
+		},
+		{
+			"path": "../../Taller de motos/.claude"
+		},
+		{
+			"path": "../../Taller de motos/.venv"
+		},
+		{
+			"path": "../../Taller de motos/.venv-1"
+		},
+		{
+			"path": "../../Taller de motos/css"
+		},
+		{
+			"path": "../../Taller de motos/img"
+		},
+		{
+			"path": "../../Taller de motos/instance"
+		}
+	],
+	"settings": {}
+}

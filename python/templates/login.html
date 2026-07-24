@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>¿Quién eres? · {{ config.APP_PRODUCTO }}</title>
+  <link rel="stylesheet" href="{{ url_for('css_files', filename='style.css') }}" />
+</head>
+<body>
+  <div class="auth-fondo">
+    <div class="auth-tarjeta" style="max-width:420px;">
+      <div class="marca">{{ taller_nombre or config.APP_PRODUCTO }}</div>
+      <h1>¿Quién eres?</h1>
+      <p class="subtexto">Elige tu nombre para continuar. No necesitas contraseña.</p>
+
+      {% with mensajes = get_flashed_messages(with_categories=true) %}
+        {% if mensajes %}
+        <div class="flash-lista">
+          {% for categoria, mensaje in mensajes %}
+          <div class="flash flash-{{ categoria }}">{{ mensaje }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      {% endwith %}
+
+      <div class="selector-usuarios">
+        {% for u in usuarios %}
+        <form method="POST">
+          <input type="hidden" name="usuario_id" value="{{ u.id }}">
+          <button type="submit" class="usuario-boton">
+            <span class="usuario-nombre">{{ u.nombre }}</span>
+            <span class="badge {{ 'badge-terminado' if u.es_admin else 'badge-recibida' }}">{{ 'Administrador' if u.es_admin else 'Mecánico' }}</span>
+          </button>
+        </form>
+        {% else %}
+        <p class="subtexto">Todavía no hay usuarios activos. Pídele al administrador que te cree una cuenta.</p>
+        {% endfor %}
+      </div>
+    </div>
+    <div class="auth-marca-producto">{{ config.APP_PRODUCTO }}</div>
+  </div>
+</body>
+</html>

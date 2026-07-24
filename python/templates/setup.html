@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configuración inicial · {{ config.APP_PRODUCTO }}</title>
+  <link rel="stylesheet" href="{{ url_for('css_files', filename='style.css') }}" />
+</head>
+<body>
+  <div class="auth-fondo">
+    <div class="auth-tarjeta" style="max-width:520px;">
+      <div class="marca">{{ config.APP_PRODUCTO }}</div>
+      <h1>Configuración inicial</h1>
+      <p class="subtexto">Esta es la primera vez que abres el programa. Completa los datos de tu taller y crea tu cuenta de administrador.</p>
+
+      {% with mensajes = get_flashed_messages(with_categories=true) %}
+        {% if mensajes %}
+        <div class="flash-lista">
+          {% for categoria, mensaje in mensajes %}
+          <div class="flash flash-{{ categoria }}">{{ mensaje }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST">
+        <div class="separador-seccion" style="margin-top:0;">Datos del taller</div>
+        <div class="campo">
+          <label for="taller_nombre">Nombre del taller *</label>
+          <input type="text" id="taller_nombre" name="taller_nombre" required autofocus>
+        </div>
+        <div class="campo">
+          <label for="taller_nit">NIT</label>
+          <input type="text" id="taller_nit" name="taller_nit">
+        </div>
+        <div class="campo">
+          <label for="taller_direccion">Dirección</label>
+          <input type="text" id="taller_direccion" name="taller_direccion">
+        </div>
+        <div class="campo">
+          <label for="taller_telefono">Teléfono</label>
+          <input type="text" id="taller_telefono" name="taller_telefono">
+        </div>
+
+        <div class="separador-seccion">Tú, como administrador</div>
+        <div class="campo">
+          <label for="admin_nombre">Tu nombre *</label>
+          <input type="text" id="admin_nombre" name="admin_nombre" required>
+          <span class="ayuda">Así aparecerás en la lista de "¿Quién eres?" al abrir el programa. Luego podrás agregar mecánicos desde Usuarios (ellos no necesitan contraseña).</span>
+        </div>
+        <div class="campo">
+          <label for="admin_password">Contraseña *</label>
+          <input type="password" id="admin_password" name="admin_password" required minlength="4">
+          <span class="ayuda">La vas a necesitar cada vez que entres como administrador.</span>
+        </div>
+        <div class="campo">
+          <label for="admin_password_confirmar">Confirmar contraseña *</label>
+          <input type="password" id="admin_password_confirmar" name="admin_password_confirmar" required minlength="4">
+        </div>
+
+        <button type="submit" class="btn btn-primario" style="width:100%; justify-content:center; margin-top:10px;">Comenzar a usar el programa</button>
+      </form>
+    </div>
+    <div class="auth-marca-producto">{{ config.APP_PRODUCTO }}</div>
+  </div>
+</body>
+</html>

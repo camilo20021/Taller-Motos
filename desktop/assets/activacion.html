@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Activar licencia</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: radial-gradient(circle at top, #1e293b, #0b1120 65%);
+    color: #e2e8f0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .tarjeta {
+    background: #ffffff;
+    color: #1c2530;
+    border-radius: 14px;
+    padding: 30px 28px;
+    width: 380px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+    text-align: center;
+  }
+  h1 { font-size: 1.1rem; margin: 0 0 8px; }
+  p { font-size: 0.85rem; color: #64748b; margin: 0 0 20px; }
+  button {
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 18px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+  }
+  button:hover { background: #1d4ed8; }
+  #mensaje {
+    margin-top: 16px;
+    font-size: 0.82rem;
+    min-height: 20px;
+  }
+  #mensaje.ok { color: #16a34a; }
+  #mensaje.error { color: #dc2626; }
+</style>
+</head>
+<body>
+  <div class="tarjeta">
+    <h1>Activar licencia</h1>
+    <p>Este programa necesita un archivo de licencia (.lic) para funcionar. Pídeselo a quien te lo vendió y selecciónalo aquí.</p>
+    <button id="btn-elegir">Seleccionar archivo de licencia...</button>
+    <div id="mensaje"></div>
+  </div>
+
+  <script>
+    document.getElementById("btn-elegir").addEventListener("click", () => {
+      const mensaje = document.getElementById("mensaje");
+      mensaje.textContent = "Verificando...";
+      mensaje.className = "";
+      window.pywebview.api.elegir_archivo().then((res) => {
+        mensaje.textContent = res.mensaje;
+        mensaje.className = res.ok ? "ok" : "error";
+        if (res.ok) {
+          setTimeout(() => window.pywebview.api.cerrar(), 1200);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

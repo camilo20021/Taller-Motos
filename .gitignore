@@ -6,3 +6,15 @@ instance/
 .venv/
 venv/
 env/
+
+# Clave privada de licenciamiento: SOLO debe existir en la máquina del
+# vendedor, nunca en el repositorio ni distribuida con la app.
+tools/private_key.pem
+*.lic
+
+# Empaquetado
+build/
+dist/
+dist-installer/
+*.spec.bak
+

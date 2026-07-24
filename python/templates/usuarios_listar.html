@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block titulo %}Usuarios · {{ config.APP_PRODUCTO }}{% endblock %}
+{% block contenido %}
+
+<div class="encabezado-pagina">
+  <div>
+    <h1>Usuarios</h1>
+    <div class="subtexto">Personas que pueden usar el programa (aparecen en la lista de "¿Quién eres?")</div>
+  </div>
+  <a href="{{ url_for('usuarios.nuevo') }}" class="btn btn-primario">+ Nueva persona</a>
+</div>
+
+<div class="tarjeta">
+  <div class="tabla-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Rol</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in usuarios %}
+        <tr>
+          <td>{{ u.nombre }}</td>
+          <td>{{ 'Administrador' if u.es_admin else 'Mecánico' }}</td>
+          <td>
+            {% if u.activo %}
+            <span class="badge badge-terminado">Activo</span>
+            {% else %}
+            <span class="badge badge-cancelado">Inactivo</span>
+            {% endif %}
+          </td>
+          <td style="display:flex; gap:6px;">
+            {% if u.es_admin %}
+            <a href="{{ url_for('usuarios.cambiar_password', usuario_id=u.id) }}" class="btn btn-sm btn-secundario">Cambiar contraseña</a>
+            {% endif %}
+            {% if u.id != current_user.id %}
+            <form method="POST" action="{{ url_for('usuarios.cambiar_estado', usuario_id=u.id) }}"
+                  data-confirmar="¿{{ 'Desactivar' if u.activo else 'Activar' }} la cuenta de {{ u.nombre }}?">
+              <button type="submit" class="btn btn-sm btn-secundario">{{ 'Desactivar' if u.activo else 'Activar' }}</button>
+            </form>
+            {% else %}
+            <span class="subtexto">Tu cuenta</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="vacio">No hay usuarios registrados todavía.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="tarjeta" style="max-width:480px;">
+  <h2>Respaldo de datos</h2>
+  <p class="subtexto">El programa guarda un respaldo automático al cerrarse. También puedes exportar uno manualmente cuando quieras.</p>
+  <form method="POST" action="{{ url_for('respaldo.exportar') }}">
+    <button type="submit" class="btn btn-secundario">Exportar respaldo...</button>
+  </form>
+</div>
+
+{% endblock %}

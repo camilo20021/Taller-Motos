@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block titulo %}Ajustes de correo · {{ config.APP_PRODUCTO }}{% endblock %}
+{% block contenido %}
+
+<div class="encabezado-pagina">
+  <div>
+    <h1>Ajustes de correo</h1>
+    <div class="subtexto">Para que los clientes reciban el aviso de "moto ingresada" y "moto lista".</div>
+  </div>
+</div>
+
+<div class="tarjeta" style="max-width:560px;">
+  <h2>{{ 'Correo configurado' if taller.correo_configurado else 'Correo sin configurar' }}</h2>
+  <p class="subtexto">
+    Los correos se envían a través de <strong>Brevo</strong> (antes Sendinblue), un servicio
+    gratuito para esto (300 correos/día gratis, sin tarjeta). No requiere "contraseña de
+    aplicación" de Gmail, que Google restringe cada vez más.
+  </p>
+  <p class="subtexto">
+    Pasos: crea una cuenta gratis en <strong>brevo.com</strong> → en el panel ve a
+    <strong>SMTP &amp; API → API Keys</strong> y genera una → pégala abajo. Después ve a
+    <strong>Senders &amp; IP → Senders</strong> y verifica el correo que vas a usar como
+    remitente (Brevo te manda un enlace de confirmación) — sin verificarlo, el envío falla.
+  </p>
+  <p class="subtexto" style="color:#92400e;">
+    <strong>La primera vez que envíes</strong>, Brevo puede rechazarlo con un error de
+    "IP no reconocida" — es normal, es una protección de seguridad de tu cuenta nueva. Entra a
+    <strong>app.brevo.com/security/authorised_ips</strong> (o Ajustes → Seguridad en tu panel de
+    Brevo) y desactiva la opción de "autorización de IP", o agrega la IP que te indique el
+    mensaje de error. Después de eso, el envío funciona normal.
+  </p>
+
+  <form method="POST">
+    <div class="form-grid">
+      <div class="campo ancho-completo">
+        <label for="brevo_api_key">API Key de Brevo {{ '' if taller.brevo_api_key_cifrada else '*' }}</label>
+        <input type="password" id="brevo_api_key" name="brevo_api_key" {{ 'required' if not taller.brevo_api_key_cifrada else '' }}>
+        <span class="ayuda">{{ 'Ya hay una guardada -- déjalo en blanco para no cambiarla.' if taller.brevo_api_key_cifrada else 'La encuentras en tu panel de Brevo, en SMTP & API → API Keys.' }}</span>
+      </div>
+      <div class="campo">
+        <label for="mail_remitente_correo">Correo remitente *</label>
+        <input type="email" id="mail_remitente_correo" name="mail_remitente_correo" value="{{ taller.mail_remitente_correo or '' }}" required>
+        <span class="ayuda">Debe estar verificado en Brevo (Senders & IP → Senders).</span>
+      </div>
+      <div class="campo">
+        <label for="mail_remitente_nombre">Nombre del remitente</label>
+        <input type="text" id="mail_remitente_nombre" name="mail_remitente_nombre" placeholder="{{ taller.nombre }}" value="{{ taller.mail_remitente_nombre or '' }}">
+      </div>
+    </div>
+
+    <div class="acciones-form">
+      <button type="submit" class="btn btn-primario">Guardar</button>
+    </div>
+  </form>
+</div>
+
+{% if taller.correo_configurado %}
+<div class="tarjeta" style="max-width:560px;">
+  <h2>Probar el envío</h2>
+  <p class="subtexto">Manda un correo de prueba para confirmar que la configuración de arriba funciona.</p>
+  <form method="POST" action="{{ url_for('ajustes.probar_correo') }}" style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+    <div class="campo" style="margin-bottom:0; flex:1; min-width:220px;">
+      <label for="destinatario">Enviar prueba a</label>
+      <input type="email" id="destinatario" name="destinatario" placeholder="tu_correo@ejemplo.com" required>
+    </div>
+    <button type="submit" class="btn btn-secundario">Enviar prueba</button>
+  </form>
+</div>
+{% endif %}
+
+{% endblock %}

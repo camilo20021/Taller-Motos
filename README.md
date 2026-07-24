@@ -1,17 +1,185 @@
-# Motos JL Racing — Sistema de gestión del taller
+# Gestión de Taller — aplicación de escritorio para talleres de motos
 
-Sistema web hecho a la medida para **Motos JL Racing** (un único taller) que controla:
+Aplicación de escritorio para Windows (no una página web) para administrar un
+taller de motos. Cada taller que la instala tiene su propia base de datos
+local (SQLite), funciona sin internet, **los mecánicos entran solo
+eligiendo su nombre de una lista (sin contraseña)** — el administrador sí
+necesita contraseña, para que nadie más entre a inventario/caja/facturación
+— y se activa con una licencia que tú mismo generas, pensada para venderse
+como producto a distintos talleres, no solo para un único negocio. Sin
+comprar la licencia, funciona igual durante 1 mes de prueba.
+
+Controla:
 
 - **Clientes y motos**: nombre, cédula, celular, correo y las motos asociadas a cada cliente.
 - **Órdenes de servicio**: ingreso y salida de motos, estado (recibida → diagnóstico → en reparación → esperando repuesto → terminado → entregado), diagnóstico y observaciones.
-- **Notificación automática por correo**: cuando se marca una orden como "terminado", se envía un correo al cliente avisando que su moto ya está lista.
+- **Notificación automática por correo**: al registrar el ingreso de una moto y cuando se marca una orden como "terminado", se envía un correo al cliente (si el correo del taller está configurado).
 - **Inventario de repuestos**: stock, stock mínimo, entradas/salidas, y descuento automático de stock cuando se usa un repuesto en una orden.
-- **Cotizaciones y facturas**: generadas a partir de los repuestos y mano de obra registrados en cada orden, con IVA calculado.
+- **Cotizaciones y facturas**: generadas a partir de los repuestos y mano de obra registrados en cada orden, con IVA (19%) calculado.
 - **Cierre de caja**: se abre la caja con una base inicial y se cierra contando el efectivo real; el sistema calcula lo esperado (base + ventas pagadas) y muestra el sobrante o faltante.
 
-## Roles de usuario
+## Cómo está construida
 
-El sistema tiene dos roles, cada uno con acceso distinto:
+Por dentro sigue siendo una aplicación web Flask (con SQLite como base de
+datos), pero se ejecuta empaquetada como programa de escritorio:
+[pywebview](https://pywebview.flowrl.com/) arranca ese servidor Flask en un
+hilo local y lo muestra en una ventana nativa de Windows — no hay navegador
+visible, ni consola, ni necesidad de instalar Python en la máquina del
+cliente final.
+
+```
+Taller-Motos/
+├── run.py                    Servidor de desarrollo (navegador, http://127.0.0.1:5000)
+├── desktop_entry.py           Punto de entrada real del .exe empaquetado
+├── requirements.txt            Dependencias de producción
+├── requirements-dev.txt         + pywebview, pyinstaller (para compilar el .exe)
+├── python/                      Backend Flask (idéntico en dev y en escritorio)
+│   ├── __init__.py                Fábrica de la app: blueprints, siembra inicial, asistente de setup
+│   ├── config.py                   Config (ruta de datos, correo, nombre del producto)
+│   ├── models.py                    Modelos SQLAlchemy
+│   ├── decorators.py                 @admin_required
+│   ├── crypto_utils.py                Cifra/descifra la contraseña de correo guardada
+│   ├── email_utils.py                 Envío de correo "moto ingresada"/"lista" (best-effort, vía API de Brevo)
+│   ├── routes_*.py                     Un blueprint por sección (auth, clientes, órdenes...)
+│   ├── routes_setup.py                  Asistente de primer arranque (taller + admin)
+│   ├── routes_ajustes.py                 Ajustes de correo (API key de Brevo propia de cada taller)
+│   ├── routes_respaldo.py                Exportar respaldo manual
+│   ├── templates/                         Las plantillas HTML (Jinja2)
+│   └── static/{css,js}/                    Estilos e interacción del lado del cliente
+├── desktop/                       Capa nativa de escritorio
+│   ├── main.py                      Orquesta todo al abrir el programa
+│   ├── appdata.py                    Rutas bajo %LOCALAPPDATA%\TallerMotos
+│   ├── server.py                      Arranca Flask (waitress) en un puerto local libre
+│   ├── single_instance.py              Evita abrir el programa dos veces
+│   ├── license_check.py                 Valida la licencia (.lic) sin necesitar internet
+│   ├── license_public_key.py             Clave pública para verificar licencias
+│   ├── activation_window.py               Pantalla de activación cuando falta licencia
+│   ├── backup.py                           Respaldo automático (al cerrar) y manual
+│   └── updater.py                           Aviso simple de nueva versión disponible
+├── tools/
+│   └── generate_license.py         Script del VENDEDOR para firmar licencias (no se distribuye)
+└── packaging/
+    ├── TallerMotos.spec             PyInstaller (genera dist/TallerMotos/)
+    ├── installer.iss                 Inno Setup (genera el instalador .exe final)
+    └── assets/app.ico                 Ícono de la app (agrega el tuyo antes de vender)
+```
+
+## Requisitos
+
+- Python 3.10 o superior (para desarrollar / compilar — el cliente final no necesita instalar Python).
+- Windows 10/11 con "Microsoft Edge WebView2 Runtime" (viene preinstalado en la gran mayoría de equipos; el instalador avisa si falta).
+
+## Modo desarrollo (navegador)
+
+Para programar/probar cambios rápido, sin empaquetar nada:
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+copy .env.example .env
+python run.py
+```
+
+Abre `http://127.0.0.1:5000`. La primera vez que arranca con la base de
+datos vacía, crea automáticamente el taller y el administrador inicial con
+los datos que definas en `.env` (`TALLER_NOMBRE`, `ADMIN_NOMBRE`,
+`ADMIN_PASSWORD`). Los mecánicos que agregues después no usan contraseña —
+solo el administrador la necesita.
+
+## Modo escritorio (ventana nativa, sin empaquetar)
+
+Para probar la experiencia real de escritorio directamente con Python, sin
+compilar un .exe todavía:
+
+```bash
+pip install -r requirements-dev.txt
+python desktop_entry.py
+```
+
+En este modo **no** se usa `.env` para crear el taller: la primera vez se
+abre un asistente de configuración inicial (nombre del taller + tu cuenta de
+administrador, con contraseña) directamente en la ventana de la app. Los
+datos se guardan en `%LOCALAPPDATA%\TallerMotos\` en vez de en la carpeta
+del proyecto.
+
+## Compilar el instalador para vender
+
+1. Agrega tu logo como `packaging/assets/app.ico` (ícono de Windows) — todavía no tiene uno propio.
+2. Genera el ejecutable:
+   ```bash
+   pyinstaller packaging/TallerMotos.spec --distpath dist --workpath build
+   ```
+   Esto crea `dist/TallerMotos/TallerMotos.exe` y todo lo que necesita a su lado.
+3. Compila el instalador con [Inno Setup](https://jrsoftware.org/isinfo.php):
+   ```bash
+   ISCC.exe packaging/installer.iss
+   ```
+   (o abre `packaging/installer.iss` en el editor de Inno Setup y presiona "Compilar"). Obtienes `dist-installer/TallerMotosSetup.exe`, listo para entregarle al cliente — instala en silencio, crea accesos directos, revisa si falta WebView2, y desinstala sin borrar los datos del taller.
+
+Cada nueva versión debe compilarse igual y mantener el mismo `AppId` en
+`installer.iss` para que el instalador actualice en vez de duplicar.
+
+## Licenciamiento (vender copias a otros talleres)
+
+No hay servidor de licencias: cada licencia es un archivo `.lic` firmado
+digitalmente (Ed25519) que tú generas.
+
+1. La primera vez que corras `tools/generate_license.py` se crea
+   automáticamente tu clave privada en `tools/private_key.pem` — **este
+   archivo es tuyo, nunca lo compartas ni lo subas a git** (ya está en
+   `.gitignore`). También te mostrará la clave pública correspondiente:
+   confirma que sea la misma que ya está en `desktop/license_public_key.py`
+   antes de vender (si es la primera vez, cópiala ahí).
+2. Para cada cliente nuevo:
+   ```bash
+   python tools/generate_license.py
+   ```
+   Ingresa el nombre del taller, los días de validez y los cupos. Se genera
+   un archivo `<taller>-activation.lic` — envíaselo al cliente (por correo,
+   por ejemplo).
+3. El cliente, desde la pantalla de activación de la app, selecciona ese
+   archivo `.lic` y queda activado. Todo funciona sin conexión a internet.
+
+Mientras no haya licencia activa, la app funciona igual durante **1 mes (30
+días) de prueba** desde el primer arranque; después de eso pide activarla
+con un archivo `.lic` para seguir usándose.
+
+## Si un cliente se queda trabado sin poder entrar (olvidó la contraseña de administrador)
+
+Como no hay "olvidé mi contraseña" dentro de la app (sería un hueco de
+seguridad), esto se resuelve por soporte: entra a la PC del cliente (remoto
+o en persona) con este proyecto disponible ahí, y corre:
+
+```bash
+python tools/reset_admin_password.py
+```
+
+Por defecto busca la carpeta de datos real de esa instalación
+(`%LOCALAPPDATA%\TallerMotos`), te muestra los administradores registrados y
+te deja ponerle una contraseña nueva sin necesitar la vieja.
+
+## Respaldo de datos
+
+Cada taller es dueño de su propia base de datos (no hay una nube por
+detrás), así que los respaldos importan:
+
+- **Automático**: se guarda una copia en `%LOCALAPPDATA%\TallerMotos\backups\`
+  cada vez que se cierra el programa (se conservan los últimos 10).
+- **Manual**: desde **Usuarios → Exportar respaldo...** se puede guardar una
+  copia donde el usuario elija (por ejemplo, en una USB o en la nube personal).
+
+## Sin contraseña para el mecánico, con contraseña para el administrador
+
+Como la información es local (vive solo en la PC del taller), no hay
+pantalla de correo/contraseña de entrada: al abrir el programa se muestra
+una lista de "¿Quién eres?" con los nombres de las personas registradas.
+Si eliges un **mecánico**, entras directo. Si eliges el **Administrador**,
+te pide la contraseña de esa cuenta — así un mecánico no puede simplemente
+elegir "Administrador" de la lista y ver inventario, facturación, caja o la
+gestión de usuarios:
+
+## Roles de usuario
 
 | Sección | Administrador | Mecánico |
 |---|---|---|
@@ -25,104 +193,44 @@ El sistema tiene dos roles, cada uno con acceso distinto:
 | Cierre de caja | ✅ | ❌ |
 | Gestión de usuarios | ✅ | ❌ |
 
-Si un mecánico intenta entrar a una sección restringida, ve una página de "Acceso restringido" en vez de romperse.
+Si un mecánico intenta entrar a una sección restringida, ve una página de
+"Acceso restringido" en vez de romperse.
 
-## Estructura del proyecto
+## Configurar el envío de correos ("moto ingresada" / "moto lista")
 
-```
-Taller de motos/
-├── run.py                  Punto de entrada (arranca el servidor)
-├── requirements.txt         Dependencias de Python
-├── .env.example               Plantilla de configuración (copiar a .env)
-├── python/                   Todo el código Python (backend)
-│   ├── __init__.py             Fabrica la aplicación Flask + siembra el taller inicial
-│   ├── config.py                Configuración (BD, correo, claves, datos del taller/admin)
-│   ├── extensions.py             Instancias de SQLAlchemy, Login, Mail
-│   ├── models.py                 Modelos de la base de datos
-│   ├── decorators.py             Decorador @admin_required para rutas solo-admin
-│   ├── email_utils.py            Envío del correo "moto lista"
-│   ├── routes_auth.py             Login
-│   ├── routes_dashboard.py        Panel principal
-│   ├── routes_clientes.py          Clientes y motos
-│   ├── routes_ordenes.py           Órdenes de servicio
-│   ├── routes_inventario.py        Inventario de repuestos (solo admin)
-│   ├── routes_documentos.py        Cotizaciones / facturas (solo admin)
-│   ├── routes_caja.py              Cierre de caja (solo admin)
-│   └── routes_usuarios.py          Gestión de usuarios (solo admin)
-├── css/                      Hojas de estilo
-├── js/                       Javascript del lado del cliente
-├── img/                      Imágenes (logos, etc.)
-├── instance/                 Base de datos SQLite local (se crea sola, no se sube a git)
-└── *.html                     Todas las plantillas HTML (sueltas, fuera de css/js/python)
-```
+Al registrar el ingreso de una moto y cuando una orden pasa a **"Terminado"**,
+el sistema intenta enviar un correo automático al cliente. Los correos se
+mandan a través de **[Brevo](https://www.brevo.com)** (antes Sendinblue),
+no de Gmail: Google restringe cada vez más las "contraseñas de aplicación"
+(muchas cuentas nuevas o con llaves de acceso ya ni las dejan generar), así
+que un servicio con una sola API key es más confiable para un producto que
+se vende a distintos talleres.
 
-## Requisitos
+Cada taller configura esto **desde dentro de la app**, en **Ajustes de
+correo** (solo lo ve el administrador) — no hay que editar ningún archivo:
 
-- Python 3.10 o superior.
+1. Cuenta gratis en brevo.com (300 correos/día gratis, sin tarjeta).
+2. En su panel: **SMTP & API → API Keys** → generar una → pegarla en Ajustes de correo.
+3. En su panel: **Senders & IP → Senders** → verificar el correo que van a usar como remitente (Brevo manda un enlace de confirmación) — sin verificarlo, el envío falla.
 
-## Instalación y ejecución local
+La API key queda cifrada en la base de datos, nunca en texto plano. Hay un
+botón para mandar un correo de prueba y confirmar que quedó bien.
 
-```bash
-# 1. Crear y activar un entorno virtual
-python -m venv .venv
-.venv\Scripts\activate          # en Windows (PowerShell/CMD)
+> **Primer envío de cada taller**: Brevo suele rechazar el primer correo con
+> un error de "IP no reconocida" (protección de cuentas nuevas). Hay que
+> entrar a `app.brevo.com/security/authorised_ips` y desactivar la
+> autorización de IP (o agregar la IP que indique el error). Como cada
+> taller manda desde su propia PC/IP, esto le va a pasar a **cada cliente
+> nuevo** la primera vez — ya quedó explicado dentro de la propia pantalla
+> de Ajustes de correo para que no se atoren.
 
-# 2. Instalar dependencias
-pip install -r requirements.txt
+En modo desarrollo, si `.env` trae `BREVO_API_KEY`/`MAIL_REMITENTE_CORREO`,
+esos valores se precargan automáticamente la primera vez (para no tener que
+llenarlos a mano mientras programas) — en producción no se usan.
 
-# 3. Configurar variables de entorno
-copy .env.example .env
-# Edita el archivo .env con tus datos (ver secciones de abajo)
-
-# 4. Ejecutar la aplicación
-python run.py
-```
-
-Abre `http://127.0.0.1:5000` en el navegador.
-
-### Primer ingreso (cuenta administradora)
-
-La primera vez que la app arranca con la base de datos vacía, crea automáticamente:
-- El taller **Motos JL Racing** (o el nombre que pongas en `TALLER_NOMBRE` en `.env`).
-- Una cuenta de **administrador** con el correo/contraseña que definas en `ADMIN_EMAIL` / `ADMIN_PASSWORD` en `.env` (si no los cambias, por defecto es `admin@motosjlracing.com` / `cambiar123`).
-
-**Entra con esa cuenta y cambia la contraseña cuanto antes.** Desde el menú **Usuarios** (solo visible para el administrador) puedes crear las cuentas de los mecánicos, eligiendo el rol "Mecánico" o "Administrador" para cada una.
-
-## Conectar la base de datos a Supabase (Postgres)
-
-Por defecto la app guarda todo en un archivo SQLite local. Para que los datos queden en Supabase:
-
-1. En el panel de Supabase, entra a **Project Settings → Database → Connection string**, pestaña **URI**, y copia la cadena. Se ve así:
-   ```
-   postgresql://postgres.xxxxxxxxxxxx:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:5432/postgres
-   ```
-2. Reemplaza `[YOUR-PASSWORD]` por tu contraseña real de la base de datos.
-3. Pega esa cadena completa en tu archivo `.env`, en la línea `DATABASE_URL=...`.
-4. Instala dependencias si no lo has hecho (`pip install -r requirements.txt`) — ya incluye el driver `psycopg` necesario para hablar con Postgres.
-5. Corre `python run.py`. La primera vez que arranca, la app crea automáticamente todas las tablas dentro de tu proyecto de Supabase (no hay que crear nada a mano en el editor de tablas) y siembra el taller + la cuenta admin ahí mismo.
-
-Puedes verificar que quedó todo en Supabase entrando a **Table Editor** en su panel: deberías ver las tablas `talleres`, `usuarios`, `clientes`, `motos`, `ordenes_servicio`, `repuestos`, `documentos`, `cierres_caja`, etc.
-
-> Importante: el archivo `.env` nunca se sube a git (`.gitignore` ya lo excluye) porque contiene la contraseña real de tu base de datos.
-
-## Configurar el envío de correos ("moto lista")
-
-Cuando se cambia el estado de una orden a **"Terminado"**, el sistema intenta enviar un correo automático al cliente. Para que funcione de verdad necesitas configurar un correo remitente en `.env`:
-
-```
-MAIL_SERVER=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USE_TLS=true
-MAIL_USERNAME=tu_correo@gmail.com
-MAIL_PASSWORD=tu_clave_de_aplicacion
-MAIL_DEFAULT_SENDER=tu_correo@gmail.com
-```
-
-Con Gmail: activa la verificación en dos pasos en la cuenta y genera una **"contraseña de aplicación"** (no uses tu contraseña normal). Otros proveedores de correo (Outlook, un correo corporativo, SendGrid, etc.) funcionan igual, solo cambia `MAIL_SERVER` y el puerto.
-
-Si el cliente no tiene correo registrado, o el correo falla, la orden se actualiza igual — el sistema solo muestra un aviso, nunca se rompe por eso.
-
-Para probar sin enviar correos de verdad, pon `MAIL_SUPPRESS_SEND=true` en `.env`.
+Si el cliente no tiene correo registrado, o el envío falla (credenciales
+incorrectas, sin internet, etc.), la orden se actualiza igual — el sistema
+solo muestra un aviso, nunca se rompe por eso.
 
 ## Cómo funciona el cierre de caja
 
@@ -136,21 +244,16 @@ Para probar sin enviar correos de verdad, pon `MAIL_SUPPRESS_SEND=true` en `.env
 
 Solo puede haber una caja abierta a la vez.
 
-## Pasar a producción
-
-1. **Servidor**: no usar `python run.py` (servidor de desarrollo). Usar un servidor WSGI como `waitress` (funciona bien en Windows) o `gunicorn` (Linux), detrás de un proveedor de hosting (Render, Railway, un VPS, etc.).
-2. **SECRET_KEY**: generar una clave larga y aleatoria distinta a la de desarrollo.
-3. **Copias de seguridad**: si usas Supabase, ya tiene respaldos automáticos; si usas SQLite local, programa respaldos periódicos del archivo `instance/taller.db`.
-
 ## Flujo típico de uso
 
-1. El administrador crea las cuentas de los mecánicos (`Usuarios → + Nueva cuenta`).
-2. El administrador registra un cliente con sus datos (nombre, cédula, celular, correo).
-3. Se registra la moto del cliente (placa, marca, modelo...) — esto lo puede hacer el administrador o el mecánico.
-4. Cuando el cliente trae la moto, se crea una **orden de servicio** (esto es el "ingreso" de la moto) — lo hace el mecánico.
-5. El mecánico va actualizando el estado de la orden y el diagnóstico.
-6. Se agregan los repuestos usados (descuentan del inventario automáticamente) y la mano de obra.
-7. Al terminar la reparación, se cambia el estado a **"Terminado"** → el cliente recibe un correo automático.
-8. El administrador genera la cotización o factura, y la marca como pagada cuando corresponda (queda ligada a la caja abierta).
-9. Al entregar la moto, se cambia el estado a **"Entregada"** (esto es la "salida" de la moto).
-10. Al final del turno, el administrador cierra la caja y verifica que cuadre.
+1. Al abrir la app por primera vez, se configura el taller y el nombre del administrador (asistente de configuración inicial).
+2. El administrador agrega a los mecánicos (`Usuarios → + Nueva persona`) — solo con su nombre, sin contraseña.
+3. El administrador registra un cliente con sus datos (nombre, cédula, celular, correo).
+4. Se registra la moto del cliente (placa, marca, modelo...) — esto lo puede hacer el administrador o el mecánico.
+5. Cuando el cliente trae la moto, se crea una **orden de servicio** (esto es el "ingreso" de la moto) — lo hace el mecánico.
+6. El mecánico va actualizando el estado de la orden y el diagnóstico.
+7. Se agregan los repuestos usados (descuentan del inventario automáticamente) y la mano de obra.
+8. Al terminar la reparación, se cambia el estado a **"Terminado"** → el cliente recibe un correo automático (si el correo del taller está configurado).
+9. El administrador genera la cotización o factura, y la marca como pagada cuando corresponda (queda ligada a la caja abierta).
+10. Al entregar la moto, se cambia el estado a **"Entregada"** (esto es la "salida" de la moto).
+11. Al final del turno, el administrador cierra la caja y verifica que cuadre.

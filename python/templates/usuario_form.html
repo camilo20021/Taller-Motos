@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block titulo %}Nueva persona · {{ config.APP_PRODUCTO }}{% endblock %}
+{% block contenido %}
+
+<div class="encabezado-pagina">
+  <div>
+    <h1>Nueva persona</h1>
+    <div class="subtexto">Agrégala a la lista de "¿Quién eres?" para que pueda usar el programa.</div>
+  </div>
+</div>
+
+<div class="tarjeta" style="max-width:480px;">
+  <form method="POST">
+    <div class="form-grid">
+      <div class="campo ancho-completo">
+        <label for="nombre">Nombre completo *</label>
+        <input type="text" id="nombre" name="nombre" required autofocus>
+      </div>
+      <div class="campo">
+        <label for="rol">Rol *</label>
+        <select id="rol" name="rol">
+          <option value="mecanico">Mecánico</option>
+          <option value="admin">Administrador</option>
+        </select>
+        <span class="ayuda">El mecánico entra solo eligiendo su nombre. El administrador tiene acceso completo y necesita contraseña.</span>
+      </div>
+    </div>
+
+    <div id="campos-password" style="display:none;">
+      <div class="form-grid">
+        <div class="campo">
+          <label for="password">Contraseña *</label>
+          <input type="password" id="password" name="password" minlength="4">
+        </div>
+        <div class="campo">
+          <label for="password_confirmar">Confirmar contraseña *</label>
+          <input type="password" id="password_confirmar" name="password_confirmar" minlength="4">
+        </div>
+      </div>
+    </div>
+
+    <div class="acciones-form">
+      <button type="submit" class="btn btn-primario">Agregar</button>
+      <a href="{{ url_for('usuarios.listar') }}" class="btn btn-secundario">Cancelar</a>
+    </div>
+  </form>
+</div>
+
+<script>
+  (function () {
+    var selectRol = document.getElementById("rol");
+    var camposPassword = document.getElementById("campos-password");
+    var password = document.getElementById("password");
+    var confirmar = document.getElementById("password_confirmar");
+
+    function actualizar() {
+      var esAdmin = selectRol.value === "admin";
+      camposPassword.style.display = esAdmin ? "block" : "none";
+      password.required = esAdmin;
+      confirmar.required = esAdmin;
+    }
+
+    selectRol.addEventListener("change", actualizar);
+    actualizar();
+  })();
+</script>
+
+{% endblock %}

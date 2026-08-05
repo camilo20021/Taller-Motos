@@ -35,6 +35,7 @@ def create_app(config_class=Config):
     from .routes_setup import setup_bp
     from .routes_respaldo import respaldo_bp
     from .routes_ajustes import ajustes_bp
+    from .routes_reportes import reportes_bp
 
     for blueprint in (
         auth_bp,
@@ -48,6 +49,7 @@ def create_app(config_class=Config):
         setup_bp,
         respaldo_bp,
         ajustes_bp,
+        reportes_bp,
     ):
         app.register_blueprint(blueprint)
 
@@ -100,8 +102,21 @@ def _migrar_columnas_faltantes():
                 if columna.name in columnas_existentes:
                     continue
                 tipo_sql = columna.type.compile(dialect=db.engine.dialect)
+                # Si la columna tiene un valor por defecto escalar, se incluye
+                # en el ALTER para que las filas existentes queden rellenadas
+                # (necesario cuando la columna es NOT NULL, ej. iva_porcentaje).
+                default_sql = ""
+                default = columna.default
+                if default is not None and not getattr(default, "is_callable", False):
+                    valor = getattr(default, "arg", None)
+                    if isinstance(valor, bool):
+                        default_sql = f" DEFAULT {1 if valor else 0}"
+                    elif isinstance(valor, (int, float)):
+                        default_sql = f" DEFAULT {valor}"
+                    elif isinstance(valor, str):
+                        default_sql = " DEFAULT '{}'".format(valor.replace("'", "''"))
                 conexion.execute(
-                    text(f'ALTER TABLE "{tabla.name}" ADD COLUMN "{columna.name}" {tipo_sql}')
+                    text(f'ALTER TABLE "{tabla.name}" ADD COLUMN "{columna.name}" {tipo_sql}{default_sql}')
                 )
 
 

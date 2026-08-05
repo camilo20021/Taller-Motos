@@ -183,6 +183,8 @@ h2 { font-size: 1.05rem; margin: 0 0 14px; font-weight: 650; color: var(--texto)
 
 .btn-peligro { background: var(--peligro-suave); color: var(--peligro); border-color: #fecaca; }
 .btn-peligro:hover { background: #fecaca; }
+.btn-wa { background: #25d366; color: #fff; border-color: #25d366; }
+.btn-wa:hover { background: #1eb457; }
 
 /* ---------- Tarjetas / stats ---------- */
 
@@ -496,10 +498,118 @@ td.vacio {
   .tarjeta { box-shadow: none; border: none; padding: 0; }
 }
 
+/* ---------- Selector de tipo de orden (Reparación / Lavado) ---------- */
+.tipo-orden { display: flex; gap: 10px; flex-wrap: wrap; }
+.tipo-opcion {
+  flex: 1;
+  min-width: 150px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 16px;
+  border: 1.5px solid var(--borde);
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  background: var(--superficie);
+  transition: border-color 0.15s, background 0.15s;
+}
+.tipo-opcion:hover { border-color: var(--primario); }
+.tipo-opcion.activa { border-color: var(--primario); background: var(--primario-suave); color: var(--primario-oscuro); }
+.tipo-opcion input { width: auto; min-height: 0; }
+
+/* Etiqueta de tipo en listados / detalle */
+.tag-tipo {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.tag-lavado { background: #cffafe; color: #0e7490; }
+.tag-reparacion { background: #ede9fe; color: #6d28d9; }
+
+/* ---------- Menú móvil / táctil ---------- */
+
+/* Barra superior y overlay: ocultos en escritorio, visibles en tablet/celular. */
+.barra-movil { display: none; }
+.overlay-menu { display: none; }
+
+/* Dirección para conectar tablets (se muestra en el pie del menú). */
+.lan-url {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: rgba(37, 211, 102, 0.14);
+  border: 1px solid rgba(37, 211, 102, 0.4);
+  border-radius: 8px;
+  font-size: 0.74rem;
+  color: #d1fae5;
+  line-height: 1.5;
+  word-break: break-all;
+}
+.lan-url strong { color: #fff; font-size: 0.9rem; }
+
 /* ---------- Responsive ---------- */
 
-@media (max-width: 860px) {
-  .layout { flex-direction: column; }
-  .sidebar { width: 100%; height: auto; position: relative; }
-  .contenido { padding: 20px; }
+/* Tablets (vertical) y celulares: menú lateral deslizable con botón. */
+@media (max-width: 900px) {
+  .barra-movil {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: linear-gradient(180deg, var(--sidebar-bg), var(--sidebar-bg-2));
+    color: #fff;
+    padding: 12px 16px;
+  }
+  .menu-btn {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    width: 46px;
+    height: 46px;
+    font-size: 1.4rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .barra-titulo { font-weight: 700; font-size: 1.02rem; }
+
+  .layout { display: block; }
+
+  /* Menú fuera de pantalla; entra al abrirlo. */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 270px;
+    max-width: 82vw;
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 70;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.35);
+  }
+  .sidebar.abierto { transform: translateX(0); }
+
+  .overlay-menu.visible {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 60;
+  }
+
+  .contenido { padding: 18px 16px; max-width: none; }
+
+  /* Objetivos táctiles más grandes y sin zoom al enfocar en iOS. */
+  .btn { min-height: 44px; padding: 11px 16px; }
+  .btn-sm { min-height: 36px; }
+  .sidebar nav a { padding: 13px 12px; font-size: 0.98rem; }
+  input, select, textarea { font-size: 16px; min-height: 44px; }
+  th, td { padding: 12px 10px; }
+  .encabezado-pagina { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .form-grid { grid-template-columns: 1fr !important; }
 }

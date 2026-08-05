@@ -1,4 +1,5 @@
 import os
+import secrets
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -18,10 +19,33 @@ def _resolve_instance_dir() -> Path:
     return instance_dir
 
 
-class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-cambiar-en-produccion")
+def _resolve_secret_key(instance_dir: Path) -> str:
+    """Clave de sesión propia de cada instalación.
 
+    Antes estaba quemada ("dev-secret-key..."), lo que significaba que todas
+    las copias del programa compartían la misma clave y las cookies de sesión
+    podían falsificarse. Ahora: si viene en el entorno se respeta; si no, se
+    genera una aleatoria la primera vez y se guarda en la carpeta de datos
+    para que las sesiones sigan siendo válidas entre reinicios."""
+    env = os.environ.get("SECRET_KEY")
+    if env:
+        return env
+    key_file = instance_dir / "secret_key"
+    if key_file.exists():
+        contenido = key_file.read_text(encoding="utf-8").strip()
+        if contenido:
+            return contenido
+    nueva = secrets.token_hex(32)
+    try:
+        key_file.write_text(nueva, encoding="utf-8")
+    except OSError:
+        pass  # si no se puede escribir, al menos se usa una clave aleatoria en memoria
+    return nueva
+
+
+class Config:
     INSTANCE_DIR = _resolve_instance_dir()
+    SECRET_KEY = _resolve_secret_key(INSTANCE_DIR)
     SQLALCHEMY_DATABASE_URI = f"sqlite:///{(INSTANCE_DIR / 'taller.db').as_posix()}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"connect_args": {"timeout": 15}}

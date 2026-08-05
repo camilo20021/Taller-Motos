@@ -1,9 +1,8 @@
-from datetime import datetime
-
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from .extensions import db
+from .utils import ahora_local
 
 ESTADOS_ORDEN = [
     "recibida",
@@ -14,6 +13,9 @@ ESTADOS_ORDEN = [
     "entregado",
     "cancelado",
 ]
+
+# Los lavados tienen un flujo más corto que una reparación.
+ESTADOS_LAVADO = ["recibida", "terminado", "entregado", "cancelado"]
 
 IVA_PORCENTAJE = 0.19
 
@@ -30,6 +32,11 @@ class Taller(db.Model):
     nit = db.Column(db.String(50))
     direccion = db.Column(db.String(200))
     telefono = db.Column(db.String(50))
+    # Logo del taller (ruta relativa dentro de /static) para las facturas.
+    logo = db.Column(db.String(255))
+    # IVA configurable por taller (0.19 = 19%). Permite emitir sin IVA
+    # (régimen simple) poniéndolo en 0.
+    iva_porcentaje = db.Column(db.Float, nullable=False, default=0.19)
 
     # Configuración de correo propia de este taller (para el aviso "moto
     # lista"/"moto ingresada"), enviado vía la API de Brevo -- se eligió en
@@ -66,6 +73,10 @@ class Usuario(UserMixin, db.Model):
     @property
     def es_admin(self) -> bool:
         return self.rol == "admin"
+
+    @property
+    def es_lavandero(self) -> bool:
+        return self.rol == "lavandero"
 
     def set_password(self, password: str) -> None:
         self.password_hash = generate_password_hash(password)
@@ -121,7 +132,7 @@ class OrdenServicio(db.Model):
     moto_id = db.Column(db.Integer, db.ForeignKey("motos.id"), nullable=False)
     mecanico_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
 
-    fecha_ingreso = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    fecha_ingreso = db.Column(db.DateTime, nullable=False, default=ahora_local)
     fecha_entrega_estimada = db.Column(db.Date)
     fecha_salida = db.Column(db.DateTime)
     kilometraje_ingreso = db.Column(db.Integer)
@@ -130,6 +141,14 @@ class OrdenServicio(db.Model):
     diagnostico = db.Column(db.Text)
     observaciones = db.Column(db.Text)
     estado = db.Column(db.String(30), nullable=False, default="recibida")
+    # Tipo de orden: reparación (por defecto) o lavado de motos.
+    tipo = db.Column(db.String(20), nullable=False, default="reparacion")
+    # Qué incluye el lavado (solo aplica cuando tipo = 'lavado').
+    lavado_incluye = db.Column(db.Text)
+    # Nombre del lavado elegido del catálogo (ej. "Lavado básico").
+    lavado_nombre = db.Column(db.String(120))
+    # Turno de llegada del día (fila de atención): 1, 2, 3...
+    turno = db.Column(db.Integer)
 
     cliente = db.relationship("Cliente")
     moto = db.relationship("Moto")
@@ -145,6 +164,10 @@ class OrdenServicio(db.Model):
     @property
     def estado_label(self) -> str:
         return _label(self.estado)
+
+    @property
+    def es_lavado(self) -> bool:
+        return self.tipo == "lavado"
 
     @property
     def subtotal_repuestos(self):
@@ -208,6 +231,20 @@ class Repuesto(db.Model):
         return self.stock <= self.stock_minimo
 
 
+class TipoLavado(db.Model):
+    """Catálogo de lavados que el taller carga una sola vez (nombre, precio y
+    qué incluye). Al crear una orden de lavado se elige uno de estos."""
+
+    __tablename__ = "tipos_lavado"
+
+    id = db.Column(db.Integer, primary_key=True)
+    taller_id = db.Column(db.Integer, db.ForeignKey("talleres.id"), nullable=False)
+    nombre = db.Column(db.String(120), nullable=False)
+    precio = db.Column(db.Float, nullable=False, default=0)
+    incluye = db.Column(db.Text)
+    activo = db.Column(db.Boolean, nullable=False, default=True)
+
+
 class MovimientoInventario(db.Model):
     __tablename__ = "movimientos_inventario"
 
@@ -216,7 +253,7 @@ class MovimientoInventario(db.Model):
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
     tipo = db.Column(db.String(10), nullable=False)  # entrada | salida
     cantidad = db.Column(db.Integer, nullable=False)
-    fecha = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    fecha = db.Column(db.DateTime, nullable=False, default=ahora_local)
 
     repuesto = db.relationship("Repuesto")
     usuario = db.relationship("Usuario")
@@ -230,7 +267,7 @@ class Documento(db.Model):
     cierre_caja_id = db.Column(db.Integer, db.ForeignKey("cierres_caja.id"))
     numero = db.Column(db.String(30), nullable=False, unique=True)
     tipo = db.Column(db.String(20), nullable=False)  # cotizacion | factura
-    fecha = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    fecha = db.Column(db.DateTime, nullable=False, default=ahora_local)
     subtotal = db.Column(db.Float, nullable=False)
     iva = db.Column(db.Float, nullable=False)
     total = db.Column(db.Float, nullable=False)
@@ -247,7 +284,7 @@ class CierreCaja(db.Model):
     abierto_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False)
     cerrado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"))
 
-    fecha_apertura = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    fecha_apertura = db.Column(db.DateTime, nullable=False, default=ahora_local)
     fecha_cierre = db.Column(db.DateTime)
     monto_inicial = db.Column(db.Float, nullable=False, default=0)
     monto_contado = db.Column(db.Float)

@@ -13,7 +13,7 @@ import sys
 import webview
 
 from . import appdata, backup, license_check, single_instance
-from .server import iniciar_servidor, puerto_libre
+from .server import elegir_puerto, iniciar_servidor, ip_local
 
 TITULO = "Gestión de Taller"
 
@@ -61,16 +61,22 @@ def _lanzar_aplicacion_principal() -> None:
 
     app = create_app()
 
-    puerto = puerto_libre()
+    puerto = elegir_puerto()
+    ip = ip_local()
+    url_lan = f"http://{ip}:{puerto}"
+    # Se guarda para mostrarla dentro de la app (menú) y que el taller sepa
+    # qué dirección escribir en las tablets conectadas al mismo Wi-Fi.
+    app.config["LAN_URL"] = url_lan
+
     iniciar_servidor(app, puerto)
-    url = f"http://127.0.0.1:{puerto}/"
+    url_local = f"http://127.0.0.1:{puerto}/"
 
     ventana = webview.create_window(
-        TITULO,
-        url,
+        f"{TITULO}   —   Tablets: {url_lan}",
+        url_local,
         width=1280,
         height=820,
-        min_size=(1024, 700),
+        min_size=(900, 600),
     )
     ventana.events.closing += lambda: backup.respaldo_automatico()
 

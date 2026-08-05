@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block titulo %}Reportes · {{ config.APP_PRODUCTO }}{% endblock %}
+{% block contenido %}
+
+<div class="encabezado-pagina">
+  <div>
+    <h1>Reportes</h1>
+    <div class="subtexto">Facturación y actividad del taller en un rango de fechas.</div>
+  </div>
+  <a href="{{ url_for('reportes.exportar', desde=desde.isoformat(), hasta=hasta.isoformat()) }}" class="btn btn-secundario">⬇ Exportar CSV</a>
+</div>
+
+<div class="tarjeta">
+  <form method="GET" style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+    <div class="campo" style="margin-bottom:0;">
+      <label for="desde">Desde</label>
+      <input type="date" id="desde" name="desde" value="{{ desde.isoformat() }}">
+    </div>
+    <div class="campo" style="margin-bottom:0;">
+      <label for="hasta">Hasta</label>
+      <input type="date" id="hasta" name="hasta" value="{{ hasta.isoformat() }}">
+    </div>
+    <button type="submit" class="btn btn-primario">Aplicar</button>
+  </form>
+</div>
+
+<div class="rejilla-stats">
+  <div class="stat">
+    <div class="valor">{{ ordenes_ingresadas }}</div>
+    <div class="etiqueta">Motos ingresadas</div>
+  </div>
+  <div class="stat">
+    <div class="valor">{{ ordenes_entregadas }}</div>
+    <div class="etiqueta">Motos entregadas</div>
+  </div>
+  <div class="stat">
+    <div class="valor">{{ num_facturas }}</div>
+    <div class="etiqueta">Facturas emitidas</div>
+  </div>
+  <div class="stat">
+    <div class="valor">${{ '{:,.0f}'.format(total_facturado) }}</div>
+    <div class="etiqueta">Total facturado</div>
+  </div>
+  <div class="stat">
+    <div class="valor">${{ '{:,.0f}'.format(total_pagado) }}</div>
+    <div class="etiqueta">Total pagado</div>
+  </div>
+</div>
+
+<div class="tarjeta">
+  <h2>Repuestos más usados</h2>
+  <div class="tabla-wrap">
+    <table>
+      <thead><tr><th>Repuesto</th><th>Cantidad</th><th>Total</th></tr></thead>
+      <tbody>
+        {% for r in top_repuestos %}
+        <tr>
+          <td>{{ r.nombre }}</td>
+          <td>{{ r.cantidad }}</td>
+          <td>${{ '{:,.0f}'.format(r.total) }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="vacio">Sin datos en el rango seleccionado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="tarjeta">
+  <h2>Órdenes entregadas por mecánico</h2>
+  <div class="tabla-wrap">
+    <table>
+      <thead><tr><th>Mecánico</th><th>Órdenes entregadas</th></tr></thead>
+      <tbody>
+        {% for m in por_mecanico %}
+        <tr>
+          <td>{{ m.nombre }}</td>
+          <td>{{ m.ordenes }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="2" class="vacio">Sin datos en el rango seleccionado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

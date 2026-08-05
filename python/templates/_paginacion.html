@@ -1,0 +1,15 @@
+{% macro paginador(paginacion, endpoint, args={}) %}
+{% if paginacion.pages > 1 %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-top:14px; gap:10px; flex-wrap:wrap;">
+  <span class="subtexto">Página {{ paginacion.page }} de {{ paginacion.pages }} · {{ paginacion.total }} en total</span>
+  <div style="display:flex; gap:8px;">
+    {% if paginacion.has_prev %}
+    <a class="btn btn-secundario btn-sm" href="{{ url_for(endpoint, page=paginacion.prev_num, **args) }}">← Anterior</a>
+    {% endif %}
+    {% if paginacion.has_next %}
+    <a class="btn btn-secundario btn-sm" href="{{ url_for(endpoint, page=paginacion.next_num, **args) }}">Siguiente →</a>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endmacro %}

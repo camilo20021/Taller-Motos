@@ -30,7 +30,15 @@
     <a href="{{ url_for('clientes.nueva_moto', cliente_id=cliente.id) }}">Registrar una moto</a>
   </p>
   {% else %}
-  <form method="POST">
+  <form method="POST" id="formOrden">
+    <div class="campo ancho-completo">
+      <label>Tipo de orden *</label>
+      <div class="tipo-orden" id="tipoOrden">
+        <label class="tipo-opcion"><input type="radio" name="tipo" value="reparacion" checked> 🔧 Reparación</label>
+        <label class="tipo-opcion"><input type="radio" name="tipo" value="lavado"> 🧽 Lavado de motos</label>
+      </div>
+    </div>
+
     <div class="form-grid">
       <div class="campo ancho-completo">
         <label for="moto_id">Moto *</label>
@@ -42,7 +50,7 @@
         </select>
       </div>
       <div class="campo">
-        <label for="mecanico_id">Mecánico asignado</label>
+        <label for="mecanico_id">Encargado</label>
         <select id="mecanico_id" name="mecanico_id">
           <option value="">Sin asignar</option>
           {% for m in mecanicos %}
@@ -58,9 +66,21 @@
         <label for="fecha_entrega_estimada">Fecha de entrega estimada</label>
         <input type="date" id="fecha_entrega_estimada" name="fecha_entrega_estimada">
       </div>
-      <div class="campo ancho-completo">
+
+      <!-- Solo REPARACIÓN -->
+      <div class="campo ancho-completo solo-reparacion">
         <label for="problema_reportado">Problema reportado por el cliente</label>
         <textarea id="problema_reportado" name="problema_reportado" placeholder="Ej: ruido en el motor, no enciende, cambio de aceite..."></textarea>
+      </div>
+
+      <!-- Solo LAVADO -->
+      <div class="campo solo-lavado" style="display:none;">
+        <label for="precio_lavado">Precio del lavado *</label>
+        <input type="number" id="precio_lavado" name="precio_lavado" min="0" step="1000" placeholder="Precio acordado con el cliente">
+      </div>
+      <div class="campo ancho-completo solo-lavado" style="display:none;">
+        <label for="incluye_lavado">¿Qué incluye el lavado?</label>
+        <textarea id="incluye_lavado" name="incluye_lavado" placeholder="Ej: lavado general, encerado, brillo de llantas, secado a mano..."></textarea>
       </div>
     </div>
 

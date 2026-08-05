@@ -25,8 +25,8 @@ def nuevo():
         if rol == "admin":
             password = request.form.get("password", "")
             confirmar = request.form.get("password_confirmar", "")
-            if len(password) < 4:
-                flash("La contraseña del administrador debe tener al menos 4 caracteres.", "error")
+            if len(password) < 6:
+                flash("La contraseña del administrador debe tener al menos 6 caracteres.", "error")
                 return render_template("usuario_form.html")
             if password != confirmar:
                 flash("Las contraseñas no coinciden.", "error")
@@ -60,8 +60,8 @@ def cambiar_password(usuario_id):
     if request.method == "POST":
         password = request.form.get("password", "")
         confirmar = request.form.get("password_confirmar", "")
-        if len(password) < 4:
-            flash("La contraseña debe tener al menos 4 caracteres.", "error")
+        if len(password) < 6:
+            flash("La contraseña debe tener al menos 6 caracteres.", "error")
         elif password != confirmar:
             flash("Las contraseñas no coinciden.", "error")
         else:

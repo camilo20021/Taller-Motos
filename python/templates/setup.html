@@ -38,8 +38,9 @@
           <input type="text" id="taller_direccion" name="taller_direccion">
         </div>
         <div class="campo">
-          <label for="taller_telefono">Teléfono</label>
-          <input type="text" id="taller_telefono" name="taller_telefono">
+          <label for="taller_telefono">Celular del taller (para WhatsApp) *</label>
+          <input type="tel" id="taller_telefono" name="taller_telefono" required placeholder="Ej: 3001234567">
+          <span class="ayuda">Se usa para firmar los avisos que se envían al cliente por WhatsApp cuando se recibe o queda lista su moto.</span>
         </div>
 
         <div class="separador-seccion">Tú, como administrador</div>
@@ -50,12 +51,12 @@
         </div>
         <div class="campo">
           <label for="admin_password">Contraseña *</label>
-          <input type="password" id="admin_password" name="admin_password" required minlength="4">
+          <input type="password" id="admin_password" name="admin_password" required minlength="6">
           <span class="ayuda">La vas a necesitar cada vez que entres como administrador.</span>
         </div>
         <div class="campo">
           <label for="admin_password_confirmar">Confirmar contraseña *</label>
-          <input type="password" id="admin_password_confirmar" name="admin_password_confirmar" required minlength="4">
+          <input type="password" id="admin_password_confirmar" name="admin_password_confirmar" required minlength="6">
         </div>
 
         <button type="submit" class="btn btn-primario" style="width:100%; justify-content:center; margin-top:10px;">Comenzar a usar el programa</button>

@@ -4,6 +4,7 @@ from flask_login import current_user, login_required
 from .decorators import admin_required
 from .extensions import db
 from .models import Cliente, Moto
+from .utils import mayus
 
 clientes_bp = Blueprint("clientes", __name__, url_prefix="/clientes")
 
@@ -32,11 +33,11 @@ def nuevo():
     if request.method == "POST":
         cliente = Cliente(
             taller_id=current_user.taller_id,
-            nombre=request.form["nombre"].strip(),
-            cedula=request.form["cedula"].strip(),
+            nombre=mayus(request.form["nombre"]),
+            cedula=mayus(request.form["cedula"]),
             celular=request.form["celular"].strip(),
-            correo=request.form.get("correo", "").strip() or None,
-            direccion=request.form.get("direccion", "").strip() or None,
+            correo=None,  # ya no se pide correo (avisos por WhatsApp)
+            direccion=mayus(request.form.get("direccion")),
         )
         db.session.add(cliente)
         db.session.commit()
@@ -52,11 +53,10 @@ def editar(cliente_id):
     cliente = Cliente.query.get_or_404(cliente_id)
 
     if request.method == "POST":
-        cliente.nombre = request.form["nombre"].strip()
-        cliente.cedula = request.form["cedula"].strip()
+        cliente.nombre = mayus(request.form["nombre"])
+        cliente.cedula = mayus(request.form["cedula"])
         cliente.celular = request.form["celular"].strip()
-        cliente.correo = request.form.get("correo", "").strip() or None
-        cliente.direccion = request.form.get("direccion", "").strip() or None
+        cliente.direccion = mayus(request.form.get("direccion"))
         db.session.commit()
         flash("Datos del cliente actualizados.", "success")
         return redirect(url_for("clientes.detalle", cliente_id=cliente.id))
@@ -89,12 +89,12 @@ def nueva_moto(cliente_id):
     if request.method == "POST":
         moto = Moto(
             cliente_id=cliente.id,
-            placa=request.form["placa"].strip().upper(),
-            marca=request.form["marca"].strip(),
-            modelo=request.form.get("modelo", "").strip() or None,
+            placa=mayus(request.form["placa"]),
+            marca=mayus(request.form["marca"]),
+            modelo=mayus(request.form.get("modelo")),
             anio=request.form.get("anio") or None,
-            color=request.form.get("color", "").strip() or None,
-            cilindraje=request.form.get("cilindraje", "").strip() or None,
+            color=mayus(request.form.get("color")),
+            cilindraje=mayus(request.form.get("cilindraje")),
             kilometraje=request.form.get("kilometraje") or None,
         )
         db.session.add(moto)
@@ -112,12 +112,12 @@ def editar_moto(moto_id):
     cliente = moto.cliente
 
     if request.method == "POST":
-        moto.placa = request.form["placa"].strip().upper()
-        moto.marca = request.form["marca"].strip()
-        moto.modelo = request.form.get("modelo", "").strip() or None
+        moto.placa = mayus(request.form["placa"])
+        moto.marca = mayus(request.form["marca"])
+        moto.modelo = mayus(request.form.get("modelo"))
         moto.anio = request.form.get("anio") or None
-        moto.color = request.form.get("color", "").strip() or None
-        moto.cilindraje = request.form.get("cilindraje", "").strip() or None
+        moto.color = mayus(request.form.get("color"))
+        moto.cilindraje = mayus(request.form.get("cilindraje"))
         moto.kilometraje = request.form.get("kilometraje") or None
         db.session.commit()
         flash("Moto actualizada.", "success")

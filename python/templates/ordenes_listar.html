@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_paginacion.html" import paginador %}
 {% block titulo %}Órdenes de servicio · {{ config.APP_PRODUCTO }}{% endblock %}
 {% block contenido %}
 
@@ -11,11 +12,18 @@
 </div>
 
 <div class="filtros-estado">
-  <a href="{{ url_for('ordenes.listar') }}" class="{{ 'activo' if not estado }}">Todas</a>
+  <a href="{{ url_for('ordenes.listar', q=q) }}" class="{{ 'activo' if not estado }}">Todas</a>
   {% for e in estados %}
-  <a href="{{ url_for('ordenes.listar', estado=e) }}" class="{{ 'activo' if estado == e }}">{{ e.replace('_',' ')|capitalize }}</a>
+  <a href="{{ url_for('ordenes.listar', estado=e, q=q) }}" class="{{ 'activo' if estado == e }}">{{ e.replace('_',' ')|capitalize }}</a>
   {% endfor %}
 </div>
+
+<form method="GET" style="margin-bottom:14px; display:flex; gap:8px; flex-wrap:wrap;">
+  {% if estado %}<input type="hidden" name="estado" value="{{ estado }}">{% endif %}
+  <input type="text" name="q" value="{{ q }}" placeholder="Buscar por placa, cliente o número de orden..." style="max-width:340px;">
+  <button type="submit" class="btn btn-secundario">Buscar</button>
+  {% if q %}<a href="{{ url_for('ordenes.listar', estado=estado) }}" class="btn btn-secundario">Limpiar</a>{% endif %}
+</form>
 
 <div class="tarjeta">
   <div class="tabla-wrap">
@@ -35,7 +43,9 @@
         {% for orden in ordenes %}
         <tr>
           <td>{{ orden.id }}</td>
-          <td>{{ orden.moto.marca }} · {{ orden.moto.placa }}</td>
+          <td>{{ orden.moto.marca }} · {{ orden.moto.placa }}
+            <span class="tag-tipo {{ 'tag-lavado' if orden.es_lavado else 'tag-reparacion' }}">{{ 'Lavado' if orden.es_lavado else 'Rep.' }}</span>
+          </td>
           <td>{{ orden.cliente.nombre }}</td>
           <td>{{ orden.fecha_ingreso.strftime('%d/%m/%Y') }}</td>
           <td>{{ orden.fecha_entrega_estimada.strftime('%d/%m/%Y') if orden.fecha_entrega_estimada else '—' }}</td>
@@ -48,6 +58,7 @@
       </tbody>
     </table>
   </div>
+  {{ paginador(paginacion, 'ordenes.listar', {'estado': estado, 'q': q}) }}
 </div>
 
 {% endblock %}

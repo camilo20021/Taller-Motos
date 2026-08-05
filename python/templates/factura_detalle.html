@@ -18,11 +18,16 @@
 
 <div class="tarjeta hoja-documento">
   <div class="cabecera-doc">
-    <div>
-      <strong style="font-size:1.1rem;">{{ current_user.taller.nombre }}</strong><br>
-      {% if current_user.taller.nit %}NIT: {{ current_user.taller.nit }}<br>{% endif %}
-      {% if current_user.taller.direccion %}{{ current_user.taller.direccion }}<br>{% endif %}
-      {% if current_user.taller.telefono %}Tel: {{ current_user.taller.telefono }}{% endif %}
+    <div style="display:flex; gap:14px; align-items:flex-start;">
+      {% if current_user.taller.logo %}
+      <img src="{{ url_for('ajustes.logo') }}" alt="Logo" style="max-height:64px; max-width:120px; object-fit:contain;">
+      {% endif %}
+      <div>
+        <strong style="font-size:1.1rem;">{{ current_user.taller.nombre }}</strong><br>
+        {% if current_user.taller.nit %}NIT: {{ current_user.taller.nit }}<br>{% endif %}
+        {% if current_user.taller.direccion %}{{ current_user.taller.direccion }}<br>{% endif %}
+        {% if current_user.taller.telefono %}Tel: {{ current_user.taller.telefono }}{% endif %}
+      </div>
     </div>
     <div style="text-align:right;">
       <strong>{{ 'COTIZACIÓN' if documento.tipo == 'cotizacion' else 'FACTURA' }}</strong><br>
@@ -62,9 +67,10 @@
     </table>
   </div>
 
+  {% set iva_pct = (documento.iva / documento.subtotal * 100) if documento.subtotal else 0 %}
   <div class="totales" style="margin-top:16px;">
     <div class="fila"><span>Subtotal</span><span>${{ '{:,.0f}'.format(documento.subtotal) }}</span></div>
-    <div class="fila"><span>IVA (19%)</span><span>${{ '{:,.0f}'.format(documento.iva) }}</span></div>
+    <div class="fila"><span>IVA ({{ '{:g}'.format(iva_pct|round(1)) }}%)</span><span>${{ '{:,.0f}'.format(documento.iva) }}</span></div>
     <div class="fila total"><span>Total</span><span>${{ '{:,.0f}'.format(documento.total) }}</span></div>
   </div>
 </div>

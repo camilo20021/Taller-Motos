@@ -12,14 +12,19 @@ inventario_bp = Blueprint("inventario", __name__, url_prefix="/inventario")
 @admin_required
 def listar():
     q = request.args.get("q", "").strip()
+    page = request.args.get("page", 1, type=int)
     consulta = Repuesto.query
     if q:
         patron = f"%{q}%"
         consulta = consulta.filter(
             db.or_(Repuesto.nombre.ilike(patron), Repuesto.codigo.ilike(patron))
         )
-    repuestos = consulta.order_by(Repuesto.nombre.asc()).all()
-    return render_template("inventario_listar.html", repuestos=repuestos, q=q)
+    paginacion = consulta.order_by(Repuesto.nombre.asc()).paginate(
+        page=page, per_page=20, error_out=False
+    )
+    return render_template(
+        "inventario_listar.html", repuestos=paginacion.items, paginacion=paginacion, q=q
+    )
 
 
 @inventario_bp.route("/nuevo", methods=["GET", "POST"])

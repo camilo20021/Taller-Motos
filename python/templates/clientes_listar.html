@@ -23,7 +23,6 @@
           <th>Nombre</th>
           <th>Cédula</th>
           <th>Celular</th>
-          <th>Correo</th>
           <th>Motos</th>
           <th></th>
         </tr>
@@ -34,12 +33,17 @@
           <td>{{ c.nombre }}</td>
           <td>{{ c.cedula }}</td>
           <td>{{ c.celular }}</td>
-          <td>{{ c.correo or '—' }}</td>
           <td>{{ c.motos|length }}</td>
-          <td><a href="{{ url_for('clientes.detalle', cliente_id=c.id) }}">Ver</a></td>
+          <td style="white-space:nowrap;">
+            <a href="{{ url_for('clientes.detalle', cliente_id=c.id) }}">Ver</a>
+            {% if current_user.es_admin %}
+            &middot;
+            <a href="{{ url_for('clientes.editar', cliente_id=c.id) }}" class="btn btn-secundario btn-sm" title="Editar datos del cliente" style="padding:3px 8px;">✏️ Editar</a>
+            {% endif %}
+          </td>
         </tr>
         {% else %}
-        <tr><td colspan="6" class="vacio">No hay clientes registrados todavía.</td></tr>
+        <tr><td colspan="5" class="vacio">No hay clientes registrados todavía.</td></tr>
         {% endfor %}
       </tbody>
     </table>

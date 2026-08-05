@@ -1,10 +1,13 @@
 {% extends "base.html" %}
 {% block titulo %}Orden #{{ orden.id }} · {{ config.APP_PRODUCTO }}{% endblock %}
 {% block contenido %}
+{% set cerrada = orden.estado in ['entregado', 'cancelado'] %}
 
 <div class="encabezado-pagina">
   <div>
-    <h1>Orden de servicio #{{ orden.id }}</h1>
+    <h1>Orden #{{ orden.id }}
+      <span class="tag-tipo {{ 'tag-lavado' if orden.es_lavado else 'tag-reparacion' }}">{{ 'LAVADO' if orden.es_lavado else 'REPARACIÓN' }}</span>
+    </h1>
     <div class="subtexto">
       {{ orden.moto.marca }} {{ orden.moto.modelo or '' }} · placa {{ orden.moto.placa }} —
       <a href="{{ url_for('clientes.detalle', cliente_id=orden.cliente.id) }}">{{ orden.cliente.nombre }}</a>
@@ -24,6 +27,9 @@
   </div>
   {% if orden.problema_reportado %}
   <p style="margin-top:14px;"><strong>Problema reportado:</strong><br>{{ orden.problema_reportado }}</p>
+  {% endif %}
+  {% if orden.es_lavado and orden.lavado_incluye %}
+  <p style="margin-top:14px;"><strong>El lavado incluye:</strong><br>{{ orden.lavado_incluye }}</p>
   {% endif %}
 </div>
 
@@ -54,10 +60,23 @@
 </div>
 
 <div class="tarjeta">
+  <h2>Avisar al cliente por WhatsApp</h2>
+  <p class="subtexto">Abre WhatsApp con el mensaje ya escrito para {{ orden.cliente.nombre }} ({{ orden.cliente.celular }}). Solo revisa y da clic en Enviar.</p>
+  <div style="display:flex; gap:10px; flex-wrap:wrap;">
+    <form method="POST" action="{{ url_for('ordenes.enviar_whatsapp', orden_id=orden.id, tipo='recibido') }}">
+      <button type="submit" class="btn btn-wa">📲 Avisar "Moto recibida"</button>
+    </form>
+    <form method="POST" action="{{ url_for('ordenes.enviar_whatsapp', orden_id=orden.id, tipo='terminado') }}">
+      <button type="submit" class="btn btn-wa">📲 Avisar "Moto lista + valor a pagar"</button>
+    </form>
+  </div>
+</div>
+
+<div class="tarjeta">
   <h2>Repuestos usados</h2>
   <div class="tabla-wrap">
     <table>
-      <thead><tr><th>Repuesto</th><th>Cantidad</th><th>Precio unit.</th><th>Subtotal</th></tr></thead>
+      <thead><tr><th>Repuesto</th><th>Cantidad</th><th>Precio unit.</th><th>Subtotal</th>{% if not cerrada %}<th></th>{% endif %}</tr></thead>
       <tbody>
         {% for item in orden.items_repuesto %}
         <tr>
@@ -65,15 +84,25 @@
           <td>{{ item.cantidad }}</td>
           <td>${{ '{:,.0f}'.format(item.precio_unitario) }}</td>
           <td>${{ '{:,.0f}'.format(item.subtotal) }}</td>
+          {% if not cerrada %}
+          <td style="text-align:right;">
+            <form method="POST" action="{{ url_for('ordenes.quitar_repuesto', orden_id=orden.id, item_id=item.id) }}"
+                  onsubmit="return confirm('¿Quitar este repuesto y devolverlo al inventario?');">
+              <button type="submit" class="btn btn-peligro btn-sm">Quitar</button>
+            </form>
+          </td>
+          {% endif %}
         </tr>
         {% else %}
-        <tr><td colspan="4" class="vacio">Aún no se han agregado repuestos.</td></tr>
+        <tr><td colspan="{{ 5 if not cerrada else 4 }}" class="vacio">Aún no se han agregado repuestos.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 
-  {% if repuestos_disponibles %}
+  {% if cerrada %}
+  <p class="subtexto" style="margin-top:14px;">La orden está <strong>{{ orden.estado_label|lower }}</strong>; el detalle ya no se puede modificar.</p>
+  {% elif repuestos_disponibles %}
   <form method="POST" action="{{ url_for('ordenes.agregar_repuesto', orden_id=orden.id) }}" style="margin-top:14px; display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
     <div class="campo" style="margin-bottom:0; min-width:220px;">
       <label for="select-repuesto">Repuesto</label>
@@ -102,20 +131,29 @@
   <h2>Mano de obra / servicios</h2>
   <div class="tabla-wrap">
     <table>
-      <thead><tr><th>Descripción</th><th>Precio</th></tr></thead>
+      <thead><tr><th>Descripción</th><th>Precio</th>{% if not cerrada %}<th></th>{% endif %}</tr></thead>
       <tbody>
         {% for item in orden.items_servicio %}
         <tr>
           <td>{{ item.descripcion }}</td>
           <td>${{ '{:,.0f}'.format(item.precio) }}</td>
+          {% if not cerrada %}
+          <td style="text-align:right;">
+            <form method="POST" action="{{ url_for('ordenes.quitar_servicio', orden_id=orden.id, item_id=item.id) }}"
+                  onsubmit="return confirm('¿Quitar este servicio?');">
+              <button type="submit" class="btn btn-peligro btn-sm">Quitar</button>
+            </form>
+          </td>
+          {% endif %}
         </tr>
         {% else %}
-        <tr><td colspan="2" class="vacio">Aún no se han agregado servicios.</td></tr>
+        <tr><td colspan="{{ 3 if not cerrada else 2 }}" class="vacio">Aún no se han agregado servicios.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 
+  {% if not cerrada %}
   <form method="POST" action="{{ url_for('ordenes.agregar_servicio', orden_id=orden.id) }}" style="margin-top:14px; display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
     <div class="campo" style="margin-bottom:0; flex:1; min-width:220px;">
       <label for="descripcion">Descripción del servicio</label>
@@ -127,6 +165,7 @@
     </div>
     <button type="submit" class="btn btn-secundario">Agregar servicio</button>
   </form>
+  {% endif %}
 
   <div class="totales" style="margin-top:16px;">
     <div class="fila"><span>Repuestos</span><span>${{ '{:,.0f}'.format(subtotal_repuestos) }}</span></div>

@@ -39,9 +39,11 @@ Name: "desktopicon"; Description: "Crear un acceso directo en el Escritorio"; Gr
 
 [Files]
 Source: "..\dist\TallerMotos\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\permitir-tablets-firewall.bat"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+Name: "{group}\Permitir tablets (Firewall)"; Filename: "{app}\permitir-tablets-firewall.bat"; Comment: "Ejecutar como administrador una vez para que las tablets se conecten"
 Name: "{group}\Desinstalar {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
